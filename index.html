@@ -443,8 +443,9 @@
                 <p style="color:#888;">Choisissez votre profil pour commencer le test</p>
             </div>
             <div class="player-grid" id="playerGrid"></div>
-            <div style="text-align:center; margin-top:30px;">
+            <div style="text-align:center; margin-top:30px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
                 <button class="btn secondary" id="btnRanking" style="display:none;" onclick="showRanking()">Voir le Classement</button>
+                <button class="btn" id="btnReset" style="display:none; background:linear-gradient(135deg,#ef4444,#dc2626);" onclick="resetAll()">Recommencer le test</button>
             </div>
         </div>
 
@@ -700,8 +701,10 @@ function renderPlayerGrid() {
     });
 
     const btnRanking = document.getElementById('btnRanking');
+    const btnReset = document.getElementById('btnReset');
     const doneCount = PLAYERS.filter(p => scores[p.id] !== undefined).length;
     btnRanking.style.display = doneCount >= 2 ? 'inline-block' : 'none';
+    btnReset.style.display = doneCount >= 1 ? 'inline-block' : 'none';
     if (allDone) {
         setTimeout(() => showRanking(), 300);
     }
@@ -918,11 +921,9 @@ function showRanking() {
 }
 
 function resetAll() {
-    if (confirm('Tout effacer et recommencer ?')) {
-        scores = {};
-        localStorage.removeItem('iq_scores');
-        backToSelect();
-    }
+    scores = {};
+    localStorage.removeItem('iq_scores');
+    backToSelect();
 }
 
 // === INIT ===
