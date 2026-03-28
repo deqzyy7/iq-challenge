@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IQ Challenge - Worceth vs JWLL vs Venox</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0a0a1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-glow {
+            position: fixed;
+            width: 400px; height: 400px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .bg-glow.purple { background: #8b5cf6; top: -100px; left: -100px; }
+        .bg-glow.blue { background: #3b82f6; bottom: -100px; right: -100px; }
+        .bg-glow.pink { background: #ec4899; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 0 20px;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        /* Screens */
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.4s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Player Select */
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 40px;
+        }
+        .player-card {
+            background: linear-gradient(145deg, #1a1a2e, #16162a);
+            border: 2px solid #2a2a4a;
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .player-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--accent);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        .player-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+        .player-card:hover::before { transform: scaleX(1); }
+        .player-card.done {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .player-card.done::after {
+            content: 'TERMINE';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+            padding: 4px 16px;
+            border-radius: 8px;
+            border: 2px solid #22c55e;
+        }
+
+        .player-avatar {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 0 auto 16px;
+            color: #fff;
+        }
+        .player-card:nth-child(1) { --accent: #8b5cf6; }
+        .player-card:nth-child(2) { --accent: #3b82f6; }
+        .player-card:nth-child(3) { --accent: #ec4899; }
+
+        .player-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+        .player-status {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        /* Quiz */
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            background: #1a1a2e;
+            border-radius: 12px;
+            border: 1px solid #2a2a4a;
+        }
+        .quiz-player {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .quiz-progress {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #1a1a2e;
+            border-radius: 3px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 4px;
+            background: #1a1a2e;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+            border-radius: 2px;
+            transition: width 0.1s linear;
+        }
+
+        .question-card {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 20px;
+        }
+        .question-category {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #8b5cf6;
+            margin-bottom: 12px;
+        }
+        .question-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .question-hint {
+            font-size: 0.85rem;
+            color: #666;
+            font-style: italic;
+        }
+        .question-image {
+            margin: 16px 0;
+            text-align: center;
+        }
+        .question-image .pattern-grid {
+            display: inline-grid;
+            gap: 4px;
+            padding: 16px;
+            background: #12121f;
+            border-radius: 12px;
+        }
+        .pattern-cell {
+            width: 50px; height: 50px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .option-btn {
+            background: #12121f;
+            border: 2px solid #2a2a4a;
+            border-radius: 12px;
+            padding: 16px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-family: inherit;
+        }
+        .option-btn:hover {
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+            transform: scale(1.02);
+        }
+        .option-btn.correct {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+        .option-btn.wrong {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+        .option-btn:disabled { cursor: default; transform: none; }
+
+        /* Results */
+        .result-card {
+            text-align: center;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 16px;
+            padding: 40px;
+            margin: 30px 0;
+        }
+        .iq-score {
+            font-size: 5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+        .iq-label {
+            font-size: 1.2rem;
+            color: #888;
+            margin-top: 8px;
+        }
+        .iq-category {
+            margin-top: 16px;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+        .result-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 24px;
+        }
+        .stat { text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-label { font-size: 0.8rem; color: #666; margin-top: 4px; }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            margin-top: 20px;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
+        .btn.secondary {
+            background: transparent;
+            border: 2px solid #2a2a4a;
+        }
+
+        /* Ranking */
+        .ranking-podium {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 12px;
+            margin: 40px 0 30px;
+            height: 280px;
+        }
+        .podium-place {
+            text-align: center;
+            border-radius: 16px 16px 0 0;
+            padding: 20px;
+            position: relative;
+            min-width: 140px;
+        }
+        .podium-place.first {
+            background: linear-gradient(180deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.05));
+            border: 2px solid rgba(234, 179, 8, 0.3);
+            border-bottom: none;
+            height: 240px;
+        }
+        .podium-place.second {
+            background: linear-gradient(180deg, rgba(156, 163, 175, 0.2), rgba(156, 163, 175, 0.05));
+            border: 2px solid rgba(156, 163, 175, 0.3);
+            border-bottom: none;
+            height: 190px;
+        }
+        .podium-place.third {
+            background: linear-gradient(180deg, rgba(180, 83, 9, 0.2), rgba(180, 83, 9, 0.05));
+            border: 2px solid rgba(180, 83, 9, 0.3);
+            border-bottom: none;
+            height: 150px;
+        }
+
+        .podium-medal {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+        .podium-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .podium-iq {
+            font-size: 2rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .podium-details {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .ranking-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin-top: 20px;
+        }
+        .ranking-table th {
+            text-align: left;
+            padding: 8px 16px;
+            color: #666;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .ranking-table td {
+            padding: 16px;
+            background: #1a1a2e;
+            font-weight: 600;
+        }
+        .ranking-table tr td:first-child { border-radius: 12px 0 0 12px; }
+        .ranking-table tr td:last-child { border-radius: 0 12px 12px 0; }
+
+        .reset-section {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #2a2a4a;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.8rem; }
+            .player-grid { grid-template-columns: 1fr; }
+            .options-grid { grid-template-columns: 1fr; }
+            .ranking-podium { flex-direction: column; height: auto; align-items: center; }
+            .podium-place { height: auto !important; width: 100%; border-radius: 16px; border: 2px solid; margin-bottom: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow purple"></div>
+    <div class="bg-glow blue"></div>
+    <div class="bg-glow pink"></div>
+
+    <div class="container">
+        <header>
+            <h1>IQ Challenge</h1>
+            <p>Worceth vs JWLL vs Venox</p>
+        </header>
+
+        <!-- Screen: Player Select -->
+        <div id="screen-select" class="screen active">
+            <div style="text-align:center; margin-top:20px;">
+                <p style="color:#888;">Choisissez votre profil pour commencer le test</p>
+            </div>
+            <div class="player-grid" id="playerGrid"></div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="btn secondary" id="btnRanking" style="display:none;" onclick="showRanking()">Voir le Classement</button>
+            </div>
+        </div>
+
+        <!-- Screen: Quiz -->
+        <div id="screen-quiz" class="screen">
+            <div class="quiz-header">
+                <span class="quiz-player" id="quizPlayer"></span>
+                <span class="quiz-progress" id="quizProgress"></span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+            <div class="question-card">
+                <div class="question-category" id="questionCategory"></div>
+                <div class="question-text" id="questionText"></div>
+                <div class="question-hint" id="questionHint"></div>
+                <div class="question-image" id="questionImage"></div>
+            </div>
+            <div class="options-grid" id="optionsGrid"></div>
+        </div>
+
+        <!-- Screen: Result -->
+        <div id="screen-result" class="screen">
+            <div class="result-card">
+                <div class="iq-score" id="iqScore"></div>
+                <div class="iq-label">Score QI estim&eacute;</div>
+                <div class="iq-category" id="iqCategory"></div>
+                <div class="result-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="statCorrect"></div>
+                        <div class="stat-label">Bonnes r&eacute;ponses</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="statTime"></div>
+                        <div class="stat-label">Temps moyen</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="statStreak"></div>
+                        <div class="stat-label">Meilleure s&eacute;rie</div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align:center;">
+                <button class="btn" onclick="backToSelect()">Retour</button>
+            </div>
+        </div>
+
+        <!-- Screen: Ranking -->
+        <div id="screen-ranking" class="screen">
+            <h2 style="text-align:center; font-size:1.8rem; margin-bottom:10px;">Classement Final</h2>
+            <p style="text-align:center; color:#888; margin-bottom:10px;">Qui est le plus intelligent ?</p>
+            <div class="ranking-podium" id="podium"></div>
+            <table class="ranking-table" id="rankingTable"></table>
+            <div class="reset-section">
+                <button class="btn secondary" onclick="backToSelect()">Retour</button>
+                <button class="btn" onclick="resetAll()" style="margin-left:12px; background:linear-gradient(135deg,#ef4444,#dc2626);">Tout recommencer</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// === DATA ===
+const PLAYERS = [
+    { id: 'worceth', name: 'Worceth', initial: 'W', color: '#8b5cf6' },
+    { id: 'jwll', name: 'JWLL', initial: 'J', color: '#3b82f6' },
+    { id: 'venox', name: 'Venox', initial: 'V', color: '#ec4899' }
+];
+
+// Points par difficulté : easy=3, medium=5, hard=8
+// Max score = 6×3 + 7×5 + 7×8 = 18+35+56 = 109
+const QUESTIONS = [
+    // ── NIVEAU FACILE (difficulty 1) ── 6 questions × 3 pts
+    {
+        category: "Séquences Numériques",
+        text: "Quel nombre complète la série : 2, 4, 8, 16, 32, ... ?",
+        options: ["48", "64", "56", "72"],
+        correct: 1, difficulty: 1,
+        hint: "Cherchez le rapport entre chaque terme"
+    },
+    {
+        category: "Analogies Verbales",
+        text: "Oiseau est à Nid ce que Abeille est à :",
+        options: ["Miel", "Ruche", "Fleur", "Pollen"],
+        correct: 1, difficulty: 1
+    },
+    {
+        category: "Raisonnement Logique",
+        text: "Marie est plus grande que Julie. Sophie est plus petite que Julie. Qui est la plus grande des trois ?",
+        options: ["Julie", "Sophie", "Marie", "Impossible à dire"],
+        correct: 2, difficulty: 1
+    },
+    {
+        category: "Arithmétique",
+        text: "Quelle est la valeur de 25% de 80 ?",
+        options: ["15", "25", "20", "18"],
+        correct: 2, difficulty: 1
+    },
+    {
+        category: "Séquences Numériques",
+        text: "Quel nombre complète la série : 1, 4, 9, 16, 25, ... ?",
+        options: ["30", "36", "32", "49"],
+        correct: 1, difficulty: 1,
+        hint: "Ces nombres ont un lien avec la multiplication"
+    },
+    {
+        category: "Analogies Verbales",
+        text: "Chaud est à Froid ce que Rapide est à :",
+        options: ["Vitesse", "Court", "Lent", "Immobile"],
+        correct: 2, difficulty: 1
+    },
+    // ── NIVEAU MOYEN (difficulty 2) ── 7 questions × 5 pts
+    {
+        category: "Séquences Numériques",
+        text: "Quel nombre complète la série : 1, 2, 4, 7, 11, 16, ... ?",
+        options: ["20", "22", "23", "21"],
+        correct: 1, difficulty: 2,
+        hint: "Regardez les différences entre les termes successifs"
+    },
+    {
+        category: "Arithmétique",
+        text: "5 chats attrapent 5 souris en 5 minutes. Combien de chats pour attraper 100 souris en 100 minutes ?",
+        options: ["100", "5", "10", "50"],
+        correct: 1, difficulty: 2,
+        hint: "Chaque chat travaille au même rythme indépendamment"
+    },
+    {
+        category: "Séquences Numériques",
+        text: "Quel nombre complète la série : 2, 3, 5, 7, 11, 13, ... ?",
+        options: ["15", "17", "16", "14"],
+        correct: 1, difficulty: 2,
+        hint: "Ces nombres ont une propriété mathématique particulière"
+    },
+    {
+        category: "Raisonnement Logique",
+        text: "Tom est plus âgé que Paul. Paul est plus âgé que Julie. Marie est plus âgée que Tom. Qui est le 2ème plus âgé ?",
+        options: ["Paul", "Julie", "Tom", "Marie"],
+        correct: 2, difficulty: 2
+    },
+    {
+        category: "Arithmétique",
+        text: "Un escargot monte de 3m par jour et redescend de 1m la nuit. En combien de jours atteint-il le sommet d'un mur de 10m ?",
+        options: ["4 jours", "5 jours", "6 jours", "8 jours"],
+        correct: 1, difficulty: 2,
+        hint: "Le dernier jour, il n'a pas besoin de redescendre"
+    },
+    {
+        category: "Codage Abstrait",
+        text: "Si A=1, B=2, C=3… et CHAT = 3+8+1+20 = 32, combien vaut LUNE ? (L=12, U=21, N=14, E=5)",
+        options: ["48", "56", "52", "44"],
+        correct: 2, difficulty: 2
+    },
+    {
+        category: "Raisonnement Spatial",
+        text: "Un carré avec ses deux diagonales tracées. Combien de triangles distincts peut-on compter (petits ET grands) ?",
+        options: ["4", "6", "8", "10"],
+        correct: 2, difficulty: 2,
+        hint: "Comptez les 4 petits, puis les 4 formés par 2 petits adjacents"
+    },
+    // ── NIVEAU DIFFICILE (difficulty 3) ── 7 questions × 8 pts
+    {
+        category: "Séquences Numériques",
+        text: "Quel nombre complète la série : 1, 2, 6, 24, 120, ... ?",
+        options: ["240", "600", "720", "480"],
+        correct: 2, difficulty: 3,
+        hint: "Le rapport entre termes consécutifs change de façon régulière"
+    },
+    {
+        category: "Séquences de Lettres",
+        text: "Quelle lettre complète la série : A, Z, B, Y, C, X, D, ... ?",
+        options: ["E", "V", "W", "U"],
+        correct: 2, difficulty: 3,
+        hint: "Deux séquences se lisent en même temps, une de gauche, une de droite"
+    },
+    {
+        category: "Raisonnement Logique",
+        text: "Je regarde un portrait. 'Je n'ai ni frère ni sœur, mais le père de cet homme est le fils de mon père.' Qui est dans le portrait ?",
+        options: ["Mon père", "Mon cousin", "Mon fils", "Moi-même"],
+        correct: 2, difficulty: 3
+    },
+    {
+        category: "Arithmétique",
+        text: "Des nénuphars doublent chaque jour. Le lac est à moitié couvert le jour 29. Quand sera-t-il entièrement couvert ?",
+        options: ["Jour 31", "Jour 58", "Jour 30", "Jour 45"],
+        correct: 2, difficulty: 3,
+        hint: "Si ça double chaque jour, que se passe-t-il le lendemain du jour 29 ?"
+    },
+    {
+        category: "Séquences Abstraites",
+        text: "Quelle lettre vient ensuite dans cette série : O, T, T, F, F, S, S, E, N, ... ?",
+        options: ["D", "H", "T", "O"],
+        correct: 2, difficulty: 3,
+        hint: "Ce sont les initiales de quelque chose que vous connaissez bien"
+    },
+    {
+        category: "Raisonnement Combinatoire",
+        text: "Combien de façons différentes peut-on monter un escalier de 5 marches en faisant 1 ou 2 marches à la fois ?",
+        options: ["6", "8", "10", "12"],
+        correct: 1, difficulty: 3,
+        hint: "Listez les combinaisons : 1+1+1+1+1, 2+1+1+1, 1+2+1+1..."
+    },
+    {
+        category: "Raisonnement Logique",
+        text: "3 boîtes mal étiquetées : 'Pommes', 'Oranges', 'Pommes+Oranges'. En tirant 1 seul fruit d'1 seule boîte, peut-on tout identifier ?",
+        options: ["Non, c'est impossible", "Oui, en tirant de 'Pommes'", "Oui, en tirant de 'Pommes+Oranges'", "Oui, seulement avec de la chance"],
+        correct: 2, difficulty: 3,
+        hint: "Toutes les étiquettes sont FAUSSES — tirez de la boîte 'Pommes+Oranges'"
+    }
+];
+
+const TIME_PER_QUESTION = 30; // seconds
+
+// === STATE ===
+const DIFF_POINTS = { 1: 3, 2: 5, 3: 8 };
+const MAX_SCORE = QUESTIONS.reduce((s, q) => s + DIFF_POINTS[q.difficulty], 0); // 109
+
+let scores = JSON.parse(localStorage.getItem('iq_scores') || '{}');
+let currentPlayer = null;
+let currentQuestions = [];
+let currentQ = 0;
+let correctCount = 0;
+let earnedPoints = 0;
+let totalTime = 0;
+let bestStreak = 0;
+let currentStreak = 0;
+let timerInterval = null;
+let timeLeft = 0;
+let questionStartTime = 0;
+
+// === SCREENS ===
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+}
+
+// === PLAYER SELECT ===
+function renderPlayerGrid() {
+    const grid = document.getElementById('playerGrid');
+    grid.innerHTML = '';
+    let allDone = true;
+
+    PLAYERS.forEach(p => {
+        const done = scores[p.id] !== undefined;
+        if (!done) allDone = false;
+        const card = document.createElement('div');
+        card.className = 'player-card' + (done ? ' done' : '');
+        card.style.setProperty('--accent', p.color);
+        card.innerHTML = `
+            <div class="player-avatar" style="background:${p.color}">${p.initial}</div>
+            <div class="player-name">${p.name}</div>
+            <div class="player-status">${done ? 'QI: ' + scores[p.id].iq : 'Pas encore test\u00e9'}</div>
+        `;
+        if (!done) card.onclick = () => startQuiz(p);
+        grid.appendChild(card);
+    });
+
+    const btnRanking = document.getElementById('btnRanking');
+    const doneCount = PLAYERS.filter(p => scores[p.id] !== undefined).length;
+    btnRanking.style.display = doneCount >= 2 ? 'inline-block' : 'none';
+    if (allDone) {
+        setTimeout(() => showRanking(), 300);
+    }
+}
+
+// === QUIZ ===
+function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function startQuiz(player) {
+    currentPlayer = player;
+    currentQuestions = QUESTIONS; // toutes les 20 questions dans l'ordre de difficulté
+    currentQ = 0;
+    correctCount = 0;
+    earnedPoints = 0;
+    totalTime = 0;
+    bestStreak = 0;
+    currentStreak = 0;
+
+    document.getElementById('quizPlayer').textContent = player.name;
+    showScreen('quiz');
+    renderQuestion();
+}
+
+function renderQuestion() {
+    if (currentQ >= currentQuestions.length) {
+        finishQuiz();
+        return;
+    }
+
+    const q = currentQuestions[currentQ];
+    document.getElementById('quizProgress').textContent = `Question ${currentQ + 1} / ${currentQuestions.length}`;
+    document.getElementById('progressFill').style.width = ((currentQ / currentQuestions.length) * 100) + '%';
+    document.getElementById('questionCategory').textContent = q.category;
+    document.getElementById('questionText').textContent = q.text;
+    document.getElementById('questionHint').textContent = q.hint || '';
+    document.getElementById('questionImage').innerHTML = '';
+
+    const grid = document.getElementById('optionsGrid');
+    grid.innerHTML = '';
+    q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.onclick = () => selectAnswer(i);
+        grid.appendChild(btn);
+    });
+
+    // Timer
+    timeLeft = TIME_PER_QUESTION;
+    questionStartTime = Date.now();
+    clearInterval(timerInterval);
+    document.getElementById('timerFill').style.width = '100%';
+    timerInterval = setInterval(() => {
+        timeLeft -= 0.1;
+        const pct = (timeLeft / TIME_PER_QUESTION) * 100;
+        document.getElementById('timerFill').style.width = Math.max(0, pct) + '%';
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            selectAnswer(-1); // timeout
+        }
+    }, 100);
+}
+
+function selectAnswer(idx) {
+    clearInterval(timerInterval);
+    const q = currentQuestions[currentQ];
+    const elapsed = (Date.now() - questionStartTime) / 1000;
+    totalTime += elapsed;
+
+    const btns = document.querySelectorAll('.option-btn');
+    btns.forEach(b => b.disabled = true);
+
+    if (idx === q.correct) {
+        correctCount++;
+        earnedPoints += DIFF_POINTS[q.difficulty];
+        currentStreak++;
+        if (currentStreak > bestStreak) bestStreak = currentStreak;
+        if (idx >= 0) btns[idx].classList.add('correct');
+    } else {
+        currentStreak = 0;
+        if (idx >= 0) btns[idx].classList.add('wrong');
+        btns[q.correct].classList.add('correct');
+    }
+
+    setTimeout(() => {
+        currentQ++;
+        renderQuestion();
+    }, 1200);
+}
+
+function calculateIQ(avgTime, streak) {
+    // Score pondéré par difficulté : 0–109 pts → QI 70–148
+    const ratio = earnedPoints / MAX_SCORE; // 0.0 à 1.0
+    let iq = 70 + ratio * 78;
+
+    // Bonus vitesse : récompense la réactivité sur les bonnes réponses (max +8)
+    if (avgTime < 8)       iq += 8;
+    else if (avgTime < 12) iq += 5;
+    else if (avgTime < 18) iq += 2;
+
+    // Bonus série : concentration soutenue (max +6)
+    iq += Math.min(streak * 1, 6);
+
+    return Math.round(Math.max(70, Math.min(155, iq)));
+}
+
+function getIQCategory(iq) {
+    if (iq >= 145) return "G\u00e9nie";
+    if (iq >= 130) return "Tr\u00e8s Sup\u00e9rieur";
+    if (iq >= 115) return "Sup\u00e9rieur \u00e0 la moyenne";
+    if (iq >= 100) return "Moyenne haute";
+    if (iq >= 85) return "Moyenne";
+    return "Sous la moyenne";
+}
+
+function finishQuiz() {
+    const avgTime = totalTime / currentQuestions.length;
+    const iq = calculateIQ(avgTime, bestStreak);
+    const category = getIQCategory(iq);
+
+    scores[currentPlayer.id] = {
+        iq: iq,
+        correct: correctCount,
+        total: currentQuestions.length,
+        points: earnedPoints,
+        maxPoints: MAX_SCORE,
+        avgTime: avgTime.toFixed(1),
+        streak: bestStreak,
+        category: category,
+        date: new Date().toISOString()
+    };
+    localStorage.setItem('iq_scores', JSON.stringify(scores));
+
+    document.getElementById('iqScore').textContent = iq;
+    document.getElementById('iqCategory').textContent = category;
+    document.getElementById('iqCategory').style.color =
+        iq >= 130 ? '#22c55e' : iq >= 115 ? '#3b82f6' : iq >= 100 ? '#8b5cf6' : '#eab308';
+    document.getElementById('statCorrect').textContent = correctCount + '/' + currentQuestions.length;
+    document.getElementById('statTime').textContent = avgTime.toFixed(1) + 's';
+    document.getElementById('statStreak').textContent = bestStreak;
+
+    showScreen('result');
+}
+
+function backToSelect() {
+    showScreen('select');
+    renderPlayerGrid();
+}
+
+// === RANKING ===
+function showRanking() {
+    const ranked = PLAYERS
+        .filter(p => scores[p.id])
+        .map(p => ({ ...p, ...scores[p.id] }))
+        .sort((a, b) => b.iq - a.iq);
+
+    if (ranked.length < 2) return;
+
+    const medals = ['\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49'];
+    const classes = ['first', 'second', 'third'];
+    const podiumOrder = ranked.length >= 3
+        ? [ranked[1], ranked[0], ranked[2]]  // 2nd, 1st, 3rd
+        : [ranked[1], ranked[0]];
+
+    const podium = document.getElementById('podium');
+    podium.innerHTML = '';
+    podiumOrder.forEach((p, displayIdx) => {
+        const rank = ranked.indexOf(p);
+        const div = document.createElement('div');
+        div.className = 'podium-place ' + classes[rank];
+        div.innerHTML = `
+            <div class="podium-medal">${medals[rank]}</div>
+            <div class="podium-name">${p.name}</div>
+            <div class="podium-iq">${p.iq}</div>
+            <div class="podium-details">${p.correct}/${p.total} correct<br>${p.avgTime}s moy.</div>
+        `;
+        podium.appendChild(div);
+    });
+
+    const table = document.getElementById('rankingTable');
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Joueur</th>
+                <th>QI</th>
+                <th>Cat\u00e9gorie</th>
+                <th>Score</th>
+                <th>Temps moy.</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${ranked.map((p, i) => `
+                <tr>
+                    <td>${medals[i] || (i+1)}</td>
+                    <td style="color:${p.color}; font-weight:800;">${p.name}</td>
+                    <td style="font-size:1.3rem; font-weight:800;">${p.iq}</td>
+                    <td>${p.category}</td>
+                    <td>${p.correct}/${p.total}</td>
+                    <td>${p.avgTime}s</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    `;
+
+    showScreen('ranking');
+}
+
+function resetAll() {
+    if (confirm('Tout effacer et recommencer ?')) {
+        scores = {};
+        localStorage.removeItem('iq_scores');
+        backToSelect();
+    }
+}
+
+// === INIT ===
+renderPlayerGrid();
+</script>
+</body>
+</html>
